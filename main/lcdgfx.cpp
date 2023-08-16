@@ -208,7 +208,7 @@ extern "C" void setup()
 
     // RGB functions do not work in default SSD1306 compatible mode
     display.fill( 0x00 );
-    menu.show( display );
+//    menu.show( display );
 }
 
 extern "C" void loop()
@@ -249,4 +249,29 @@ extern "C" void loop()
     lcd_delay(500);
     menu.down();
     menu.show(display);
+}
+
+extern "C" void lcdTest()
+{
+    display.clear();
+    display.setFixedFont(digital_font5x7);
+    display.setColor(RGB_COLOR8(0,64,255));
+    display.printFixed(0,  0, "0123456789", STYLE_NORMAL);
+    display.setFixedFont(ssd1306xled_font6x8);
+    display.setColor(RGB_COLOR8(255,255,0));
+    display.printFixed(0,  8, "Normal text", STYLE_NORMAL);
+    display.setColor(RGB_COLOR8(0,255,0));
+    display.printFixed(0, 16, "Bold text?", STYLE_BOLD);
+    display.setColor(RGB_COLOR8(0,255,255));
+    display.printFixed(0, 24, "Italic text?", STYLE_ITALIC);
+    display.setColor(RGB_COLOR8(255,255,255));
+    display.invertColors();
+    display.printFixed(0, 32, "Inverted bold?", STYLE_BOLD);
+    display.invertColors();
+    lcd_delay(3000);
+}
+
+extern "C" void lcdLoop()
+{
+    lcd_delay(3000);
 }

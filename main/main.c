@@ -13,6 +13,8 @@ static const char *TAG = "study_timer_main";
 extern void wps_main(void);
 extern void setup(void);
 extern void loop(void);
+extern void lcdTest(void);
+extern void lcdLoop(void);
 
 #if CONFIG_FREERTOS_UNICORE
 #define ARDUINO_RUNNING_CORE 0
@@ -23,8 +25,9 @@ extern void loop(void);
 void main_task(void *args)
 {
     setup();
+    lcdTest();
     for(;;) {
-        loop();
+        lcdLoop();
 #ifdef SDL_EMULATION
         sdl_read_analog(0);
 #endif
