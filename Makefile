@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := wps_example
+PROJECT_NAME := study_timer
 
 include $(IDF_PATH)/make/project.mk
