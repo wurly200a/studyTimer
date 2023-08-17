@@ -43,8 +43,14 @@ NanoEngine8<DisplaySSD1331_96x64x8_SPI> engine(display);
 
 #define FONT_HEIGHT 8
 #define SPRITE_NUM 8
-#define SCROLL_NUM SPRITE_NUM
+#define BUFFER_SIZE 32
 NanoPoint sprites[SPRITE_NUM];
+int writeIndex = 0;
+int readIndex = 0;
+int spriteCounter = 0;
+char displayDataArray[SPRITE_NUM][BUFFER_SIZE];
+char displayDataArrayBuffer[BUFFER_SIZE];
+bool bufferExist = false;
 
 extern "C" void setup()
 {
@@ -70,35 +76,84 @@ extern "C" void setup()
         engine.getCanvas().clear();
         engine.getCanvas().setColor( RGB_COLOR8(255, 32, 32) );
         engine.getCanvas().setFixedFont(ssd1306xled_font6x8);
-        engine.getCanvas().printFixedPgm( sprites[0].x, sprites[0].y, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[1].x, sprites[1].y, "01234567890123456789012345", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[2].x, sprites[2].y, "11234567890123456789012345", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[3].x, sprites[3].y, "21234567890123456789012345", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[4].x, sprites[4].y, "31234567890123456789012345", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[5].x, sprites[5].y, "41234567890123456789012345", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[6].x, sprites[6].y, "51234567890123456789012345", STYLE_NORMAL );
-        engine.getCanvas().printFixedPgm( sprites[7].x, sprites[7].y, "61234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[0].x, sprites[0].y, displayDataArray[0], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[1].x, sprites[1].y, displayDataArray[1], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[2].x, sprites[2].y, displayDataArray[2], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[3].x, sprites[3].y, displayDataArray[3], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[4].x, sprites[4].y, displayDataArray[4], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[5].x, sprites[5].y, displayDataArray[5], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[6].x, sprites[6].y, displayDataArray[6], STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[7].x, sprites[7].y, displayDataArray[7], STYLE_NORMAL );
         return true;
     } );
 }
 
+bool readFromDataArray(void) {
+
+    readIndex = (readIndex + 1) % SPRITE_NUM;
+
+    return true;
+}
+
 extern "C" void lcdTest()
 {
-  for (int j=0; j<SPRITE_NUM; j++ )
+  if( bufferExist )
   {
-      engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
-      sprites[j].y+=FONT_HEIGHT;
-      if (sprites[j].y >= display.height())
-      {
-          sprites[j].y = 0;
-      }
+      strncpy(displayDataArray[writeIndex], displayDataArrayBuffer, BUFFER_SIZE);
+      bufferExist = false;
+      writeIndex = (writeIndex + 1) % SPRITE_NUM;
+//      readFromDataArray();
 
-      engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+      for (int j=0; j<SPRITE_NUM; j++ )
+      {
+          sprites[j].y-=FONT_HEIGHT;
+          if (sprites[j].y < 0)
+          {
+              sprites[j].y = FONT_HEIGHT*7;
+          }
+          engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+      }
+      engine.display();
   }
-  engine.display();
+  else
+  {
+      // do nothing
+  }
 }
 
 extern "C" void lcdLoop()
 {
-  lcd_delay(200);
+    lcd_delay(1000);
+}
+
+extern "C" bool PrintLCD(char *msg) {
+    if (strlen(msg) >= BUFFER_SIZE) {
+        return false;
+    }
+
+    if( spriteCounter < SPRITE_NUM )
+    {
+      strncpy(displayDataArray[spriteCounter], msg, BUFFER_SIZE);
+      spriteCounter++;
+
+      for (int j=0; j<SPRITE_NUM; j++ )
+      {
+          engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+      }
+      engine.display();
+    }
+    else
+    {
+      if( bufferExist )
+      {
+        // do nothing
+      }
+      else
+      {
+        strncpy(displayDataArrayBuffer, msg, BUFFER_SIZE);
+        bufferExist = true;
+      }
+    }
+
+    return true;
 }
