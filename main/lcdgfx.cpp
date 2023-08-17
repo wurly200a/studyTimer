@@ -41,6 +41,11 @@ DisplaySSD1331_96x64x8_SPI display(4,{-1, 17, 16, 0,18,23});
 NanoPoint sprite;
 NanoEngine8<DisplaySSD1331_96x64x8_SPI> engine(display);
 
+#define FONT_HEIGHT 8
+#define SPRITE_NUM 8
+#define SCROLL_NUM SPRITE_NUM
+NanoPoint sprites[SPRITE_NUM];
+
 extern "C" void setup()
 {
     display.setFixedFont(ssd1306xled_font6x8);
@@ -48,15 +53,6 @@ extern "C" void setup()
 
     // RGB functions do not work in default SSD1306 compatible mode
     display.fill( 0x00 );
-//    menu.show( display );
-}
-
-#define FONT_HEIGHT 8
-#define SPRITE_NUM 8
-#define SCROLL_NUM SPRITE_NUM
-NanoPoint sprites[SPRITE_NUM];
-extern "C" void lcdTest()
-{
     display.clear();
 
     for (int j=0; j<SPRITE_NUM; j++)
@@ -84,28 +80,25 @@ extern "C" void lcdTest()
         engine.getCanvas().printFixedPgm( sprites[7].x, sprites[7].y, "61234567890123456789012345", STYLE_NORMAL );
         return true;
     } );
+}
 
-    for (int i=0; i<SCROLL_NUM; i++)
-    {
-      for (int j=0; j<SPRITE_NUM; j++ )
+extern "C" void lcdTest()
+{
+  for (int j=0; j<SPRITE_NUM; j++ )
+  {
+      engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+      sprites[j].y+=FONT_HEIGHT;
+      if (sprites[j].y >= display.height())
       {
-        engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
-        sprites[j].y+=FONT_HEIGHT;
-        if (sprites[j].y >= display.height())
-        {
           sprites[j].y = 0;
-        }
-
-        engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
       }
 
-      engine.display();
-      lcd_delay(1000);
-    }
-    lcd_delay(1000);
+      engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+  }
+  engine.display();
 }
 
 extern "C" void lcdLoop()
 {
-//    lcd_delay(3000);
+  lcd_delay(200);
 }
