@@ -251,27 +251,129 @@ extern "C" void loop()
     menu.show(display);
 }
 
+#define FONT_HEIGHT 8
+#define SPRITE_NUM 8
+#define SCROLL_NUM SPRITE_NUM
+NanoPoint sprites[SPRITE_NUM];
 extern "C" void lcdTest()
 {
     display.clear();
+
+    for (int j=0; j<SPRITE_NUM; j++)
+    {
+      sprites[j].x = 0;
+      sprites[j].y = (FONT_HEIGHT*j);
+    }
+
+    // We not need to clear screen, engine will do it for us
+    engine.begin();
+    // Force engine to refresh the screen
+    engine.refresh();
+    // Set function to draw our sprite1
+    engine.drawCallback( []()->bool {
+        engine.getCanvas().clear();
+        engine.getCanvas().setColor( RGB_COLOR8(255, 32, 32) );
+        engine.getCanvas().setFixedFont(ssd1306xled_font6x8);
+        engine.getCanvas().printFixedPgm( sprites[0].x, sprites[0].y, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[1].x, sprites[1].y, "01234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[2].x, sprites[2].y, "11234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[3].x, sprites[3].y, "21234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[4].x, sprites[4].y, "31234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[5].x, sprites[5].y, "41234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[6].x, sprites[6].y, "51234567890123456789012345", STYLE_NORMAL );
+        engine.getCanvas().printFixedPgm( sprites[7].x, sprites[7].y, "61234567890123456789012345", STYLE_NORMAL );
+        return true;
+    } );
+
+    for (int i=0; i<SCROLL_NUM; i++)
+    {
+      for (int j=0; j<SPRITE_NUM; j++ )
+      {
+        engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+        sprites[j].y+=FONT_HEIGHT;
+        if (sprites[j].y >= display.height())
+        {
+          sprites[j].y = 0;
+        }
+
+        engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+      }
+
+      engine.display();
+      lcd_delay(1000);
+    }
+    lcd_delay(1000);
+}
+
+
+extern "C" void lcdTestHeartDemo()
+{
+    display.clear();
+
+    // We not need to clear screen, engine will do it for us
+    engine.begin();
+    // Force engine to refresh the screen
+    engine.refresh();
+    // Set function to draw our sprite
+    engine.drawCallback( []()->bool {
+        engine.getCanvas().clear();
+        engine.getCanvas().setColor( RGB_COLOR8(255, 32, 32) );
+        engine.getCanvas().drawBitmap1( sprite.x, sprite.y, 8, 8, heartImage );
+        return true;
+    } );
+    sprite.x = 0;
+    sprite.y = 0;
+    for (int i=0; i<250; i++)
+    {
+        lcd_delay(15);
+        // Tell the engine to refresh screen at old sprite position
+        engine.refresh( sprite.x, sprite.y, sprite.x + 100 - 1, sprite.y + 8 - 1 );
+        sprite.x++;
+        if (sprite.x >= display.width())
+        {
+            sprite.x = 0;
+        }
+        sprite.y+=8;
+        if (sprite.y >= display.height())
+        {
+            sprite.y = 0;
+        }
+        // Tell the engine to refresh screen at new sprite position
+        engine.refresh( sprite.x, sprite.y, sprite.x + 100 - 1, sprite.y + 8 - 1 );
+        // Do refresh required parts of screen
+        engine.display();
+    }
+
+    lcd_delay(3000);
+}
+
+extern "C" void lcdTestSomeTexts()
+{
+    display.clear();
+
     display.setFixedFont(digital_font5x7);
     display.setColor(RGB_COLOR8(0,64,255));
     display.printFixed(0,  0, "0123456789", STYLE_NORMAL);
+
     display.setFixedFont(ssd1306xled_font6x8);
     display.setColor(RGB_COLOR8(255,255,0));
     display.printFixed(0,  8, "Normal text", STYLE_NORMAL);
+
     display.setColor(RGB_COLOR8(0,255,0));
     display.printFixed(0, 16, "Bold text?", STYLE_BOLD);
+
     display.setColor(RGB_COLOR8(0,255,255));
     display.printFixed(0, 24, "Italic text?", STYLE_ITALIC);
+
     display.setColor(RGB_COLOR8(255,255,255));
     display.invertColors();
     display.printFixed(0, 32, "Inverted bold?", STYLE_BOLD);
     display.invertColors();
+
     lcd_delay(3000);
 }
 
 extern "C" void lcdLoop()
 {
-    lcd_delay(3000);
+//    lcd_delay(3000);
 }

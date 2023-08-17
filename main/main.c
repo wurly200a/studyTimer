@@ -25,8 +25,8 @@ extern void lcdLoop(void);
 void main_task(void *args)
 {
     setup();
-    lcdTest();
     for(;;) {
+        lcdTest();
         lcdLoop();
 #ifdef SDL_EMULATION
         sdl_read_analog(0);
