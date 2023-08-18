@@ -52,7 +52,7 @@ char displayDataArray[SPRITE_NUM][BUFFER_SIZE];
 char displayDataArrayBuffer[BUFFER_SIZE];
 bool bufferExist = false;
 
-extern "C" void setup()
+extern "C" void lcdSetup()
 {
     display.setFixedFont(ssd1306xled_font6x8);
     display.begin();
@@ -95,7 +95,7 @@ bool readFromDataArray(void) {
     return true;
 }
 
-extern "C" void lcdTest()
+extern "C" void lcdProc()
 {
   if( bufferExist )
   {
@@ -119,11 +119,6 @@ extern "C" void lcdTest()
   {
       // do nothing
   }
-}
-
-extern "C" void lcdLoop()
-{
-    lcd_delay(1000);
 }
 
 extern "C" bool PrintLCD(char *msg) {

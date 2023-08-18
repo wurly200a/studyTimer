@@ -10,11 +10,10 @@
 
 static const char *TAG = "study_timer_main";
 
+extern bool isWifiConnected( void );
 extern void wps_main(void);
-extern void setup(void);
-extern void loop(void);
-extern void lcdTest(void);
-extern void lcdLoop(void);
+extern void lcdSetup(void);
+extern void lcdProc(void);
 extern bool PrintLCD( char *msg );
 extern void telemetry_upload__main(void);
 
@@ -27,26 +26,46 @@ extern void telemetry_upload__main(void);
 #define BUFFER_SIZE 32
 char szBuffer[BUFFER_SIZE];
 
+static void delay(unsigned long ms)
+{
+    vTaskDelay(ms / portTICK_PERIOD_MS);
+}
+
+void sub_task(void *args)
+{
+    lcdSetup();
+
+    for(;;) {
+        lcdProc();
+        delay(10);
+    }
+}
+
 void main_task(void *args)
 {
-    int counter=0;
-    setup();
+    xTaskCreatePinnedToCore(sub_task, "subTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+    PrintLCD("Study Timer!");
     for(;;) {
-        lcdTest();
-        lcdLoop();
-        sprintf(szBuffer,"test%d",counter);
-        PrintLCD(szBuffer);
-#ifdef SDL_EMULATION
-        sdl_read_analog(0);
-#endif
-        counter++;
+        delay(1000);
     }
 }
 
 void app_main(void)
 {
+    int counter=0;
     ESP_LOGI(TAG, "APP_MAIN_START");
     xTaskCreatePinnedToCore(main_task, "mainTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+
     wps_main();
+    while( !isWifiConnected() )
+    {
+        delay(1000);
+        sprintf(szBuffer,"WaitForCnct(%d)",counter);
+        PrintLCD(szBuffer);
+        counter++;
+    }
+    PrintLCD("Connected");
+    delay(200);
     telemetry_upload__main();
+    PrintLCD("Telemetry Upload");
 }

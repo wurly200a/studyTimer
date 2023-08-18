@@ -165,9 +165,9 @@ static void start_wps(void)
     ESP_ERROR_CHECK(esp_wifi_wps_start(0));
 }
 
-void delay(unsigned long ms)
+bool isWifiConnected( void )
 {
-    vTaskDelay(ms / portTICK_PERIOD_MS);
+    return s_connected;
 }
 
 void wps_main(void)
@@ -181,8 +181,4 @@ void wps_main(void)
     ESP_ERROR_CHECK( ret );
 
     start_wps();
-    while( !s_connected )
-    {
-        delay(1000);
-    }
 }
