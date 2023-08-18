@@ -88,9 +88,9 @@ extern "C" void lcdProc()
             sprites[j].y-=FONT_HEIGHT;
             if (sprites[j].y < 0)
             {
-                sprites[j].y = FONT_HEIGHT*7;
+                sprites[j].y = FONT_HEIGHT*(SPRITE_NUM-1);
             }
-            engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+            engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + display.width()-1, sprites[j].y + FONT_HEIGHT - 1 );
         }
         engine.display();
     }
@@ -112,7 +112,7 @@ extern "C" bool PrintLCD(char *msg) {
 
         for (int j=0; j<SPRITE_NUM; j++ )
         {
-            engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+            engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + display.width()-1, sprites[j].y + FONT_HEIGHT - 1 );
         }
         engine.display();
     }
