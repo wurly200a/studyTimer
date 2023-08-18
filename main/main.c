@@ -16,6 +16,7 @@ extern void loop(void);
 extern void lcdTest(void);
 extern void lcdLoop(void);
 extern bool PrintLCD( char *msg );
+extern void telemetry_upload__main(void);
 
 #if CONFIG_FREERTOS_UNICORE
 #define ARDUINO_RUNNING_CORE 0
@@ -47,4 +48,5 @@ void app_main(void)
     ESP_LOGI(TAG, "APP_MAIN_START");
     xTaskCreatePinnedToCore(main_task, "mainTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
     wps_main();
+    telemetry_upload__main();
 }

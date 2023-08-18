@@ -29,7 +29,6 @@
 #include "nvs_flash.h"
 #include <string.h>
 
-
 /*set wps mode via project configuration */
 #if CONFIG_EXAMPLE_WPS_TYPE_PBC
 #define WPS_MODE WPS_TYPE_PBC
@@ -51,6 +50,8 @@ static esp_wps_config_t config = WPS_CONFIG_INIT_DEFAULT(WPS_MODE);
 static wifi_config_t wps_ap_creds[MAX_WPS_AP_CRED];
 static int s_ap_creds_num = 0;
 static int s_retry_num = 0;
+
+static bool s_connected = false;
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
@@ -108,6 +109,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                  */
                 ESP_ERROR_CHECK(esp_wifi_wps_disable());
                 esp_wifi_connect();
+                s_connected = true;
             }
             break;
         case WIFI_EVENT_STA_WPS_ER_FAILED:
@@ -163,6 +165,11 @@ static void start_wps(void)
     ESP_ERROR_CHECK(esp_wifi_wps_start(0));
 }
 
+void delay(unsigned long ms)
+{
+    vTaskDelay(ms / portTICK_PERIOD_MS);
+}
+
 void wps_main(void)
 {
     /* Initialize NVS — it is used to store PHY calibration data */
@@ -174,4 +181,8 @@ void wps_main(void)
     ESP_ERROR_CHECK( ret );
 
     start_wps();
+    while( !s_connected )
+    {
+        delay(1000);
+    }
 }
