@@ -21,24 +21,12 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 */
-/**
- *   Nano/Atmega328 PINS: connect LCD to D5 (D/C), D4 (CS), D3 (RES), D11(DIN), D13(CLK)
- *   Attiny SPI PINS:     connect LCD to D4 (D/C), GND (CS), D3 (RES), D1(DIN), D2(CLK)
- *   ESP8266: connect LCD to D1(D/C), D2(CS), RX(RES), D7(DIN), D5(CLK)
- */
-
-/* !!! THIS DEMO RUNS in FULL COLOR MODE */
-
 #include "lcdgfx.h"
 #include "lcdgfx_gui.h"
 #include "sova.h"
 
 // The parameters are  RST pin, BUS number, CS pin, DC pin, FREQ (0 means default), CLK pin, MOSI pin
-//DisplaySSD1331_96x64x8_SPI display(3,{-1, 4, 5, 0,-1,-1}); // Use this line for Atmega328p
 DisplaySSD1331_96x64x8_SPI display(4,{-1, 17, 16, 0,18,23});
-//DisplaySSD1331_96x64x8_SPI display(4,{-1, -1, 5, 0,-1,-1});  // Use this line for ESP8266 Arduino style rst=4, CS=-1, DC=5
-                                                             // And ESP8266 RTOS IDF. GPIO4 is D2, GPIO5 is D1 on NodeMCU boards
-NanoPoint sprite;
 NanoEngine8<DisplaySSD1331_96x64x8_SPI> engine(display);
 
 #define FONT_HEIGHT 8
@@ -46,7 +34,6 @@ NanoEngine8<DisplaySSD1331_96x64x8_SPI> engine(display);
 #define BUFFER_SIZE 32
 NanoPoint sprites[SPRITE_NUM];
 int writeIndex = 0;
-int readIndex = 0;
 int spriteCounter = 0;
 char displayDataArray[SPRITE_NUM][BUFFER_SIZE];
 char displayDataArrayBuffer[BUFFER_SIZE];
@@ -63,8 +50,8 @@ extern "C" void lcdSetup()
 
     for (int j=0; j<SPRITE_NUM; j++)
     {
-      sprites[j].x = 0;
-      sprites[j].y = (FONT_HEIGHT*j);
+        sprites[j].x = 0;
+        sprites[j].y = (FONT_HEIGHT*j);
     }
 
     // We not need to clear screen, engine will do it for us
@@ -88,37 +75,29 @@ extern "C" void lcdSetup()
     } );
 }
 
-bool readFromDataArray(void) {
-
-    readIndex = (readIndex + 1) % SPRITE_NUM;
-
-    return true;
-}
-
 extern "C" void lcdProc()
 {
-  if( bufferExist )
-  {
-      strncpy(displayDataArray[writeIndex], displayDataArrayBuffer, BUFFER_SIZE);
-      bufferExist = false;
-      writeIndex = (writeIndex + 1) % SPRITE_NUM;
-//      readFromDataArray();
+    if( bufferExist )
+    {
+        strncpy(displayDataArray[writeIndex], displayDataArrayBuffer, BUFFER_SIZE);
+        bufferExist = false;
+        writeIndex = (writeIndex + 1) % SPRITE_NUM;
 
-      for (int j=0; j<SPRITE_NUM; j++ )
-      {
-          sprites[j].y-=FONT_HEIGHT;
-          if (sprites[j].y < 0)
-          {
-              sprites[j].y = FONT_HEIGHT*7;
-          }
-          engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
-      }
-      engine.display();
-  }
-  else
-  {
-      // do nothing
-  }
+        for (int j=0; j<SPRITE_NUM; j++ )
+        {
+            sprites[j].y-=FONT_HEIGHT;
+            if (sprites[j].y < 0)
+            {
+                sprites[j].y = FONT_HEIGHT*7;
+            }
+            engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+        }
+        engine.display();
+    }
+    else
+    {
+        // do nothing
+    }
 }
 
 extern "C" bool PrintLCD(char *msg) {
@@ -128,26 +107,26 @@ extern "C" bool PrintLCD(char *msg) {
 
     if( spriteCounter < SPRITE_NUM )
     {
-      strncpy(displayDataArray[spriteCounter], msg, BUFFER_SIZE);
-      spriteCounter++;
+        strncpy(displayDataArray[spriteCounter], msg, BUFFER_SIZE);
+        spriteCounter++;
 
-      for (int j=0; j<SPRITE_NUM; j++ )
-      {
-          engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
-      }
-      engine.display();
+        for (int j=0; j<SPRITE_NUM; j++ )
+        {
+            engine.refresh( sprites[j].x, sprites[j].y, sprites[j].x + 100 - 1, sprites[j].y + 8 - 1 );
+        }
+        engine.display();
     }
     else
     {
-      if( bufferExist )
-      {
-        // do nothing
-      }
-      else
-      {
-        strncpy(displayDataArrayBuffer, msg, BUFFER_SIZE);
-        bufferExist = true;
-      }
+        if( bufferExist )
+        {
+            // do nothing
+        }
+        else
+        {
+            strncpy(displayDataArrayBuffer, msg, BUFFER_SIZE);
+            bufferExist = true;
+        }
     }
 
     return true;
