@@ -130,8 +130,6 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
             wifi_event_sta_wps_er_pin_t* event = (wifi_event_sta_wps_er_pin_t*) event_data;
             ESP_LOGI(TAG, "WPS_PIN = " PINSTR, PIN2STR(event->pin_code));
             break;
-        default:
-            break;
     }
 }
 

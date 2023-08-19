@@ -85,6 +85,7 @@ void tb_on_disconnected(tbcmh_handle_t client, void *context)
 
 static void mqtt_app_start(void)
 {
+    bool go_to_destroy_flag = false;
 	//tbc_err_t err;
     const char *access_token = CONFIG_ACCESS_TOKEN;
     const char *uri = CONFIG_BROKER_URL;
@@ -157,10 +158,11 @@ static void mqtt_app_start(void)
                         NULL, tb_on_connected, tb_on_disconnected);
     if (!result) {
         ESP_LOGE(TAG, "failure to connect to tbcmh!");
-        goto exit_destroy;
+        go_to_destroy_flag = true;
     }
 
-
+    if( !go_to_destroy_flag )
+    {
     ESP_LOGI(TAG, "connect tbcmh ...");
     int i = 0;
     while (i<20) {
@@ -182,8 +184,8 @@ static void mqtt_app_start(void)
 
     ESP_LOGI(TAG, "Disconnect tbcmh ...");
     tbcmh_disconnect(client);
+    }
 
-exit_destroy:
     ESP_LOGI(TAG, "Destroy tbcmh ...");
     tbcmh_destroy(client);
 }

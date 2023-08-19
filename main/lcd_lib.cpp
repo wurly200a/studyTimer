@@ -34,7 +34,7 @@ NanoPoint sprites[LCD_SPRITE_NUM_MAX];
 S_LCD_CTRL_DATA lcdCtrlData[LCD_DISPLAY_MODE_MAX];
 S_LCD_CTRL_DATA *lcdCtrlDataPtr;
 
-extern "C" void lcdSetup(LCD_DISPLAY_MODE mode)
+void lcdSetup(LCD_DISPLAY_MODE mode)
 {
     lcdCtrlDataPtr = &lcdCtrlData[mode%LCD_DISPLAY_MODE_MAX];
 
@@ -108,7 +108,7 @@ extern "C" void lcdSetup(LCD_DISPLAY_MODE mode)
     }
 }
 
-extern "C" void lcdProc()
+void lcdProc()
 {
     if( lcdCtrlDataPtr != nullptr )
     {
@@ -140,7 +140,7 @@ extern "C" void lcdProc()
     }
 }
 
-extern "C" bool PrintLCD(LCD_DISPLAY_MODE mode,char *msg) {
+bool PrintLCD(LCD_DISPLAY_MODE mode,char *msg) {
     if( &lcdCtrlData[mode%LCD_DISPLAY_MODE_MAX] == lcdCtrlDataPtr )
     {
         if( lcdCtrlDataPtr != nullptr )
@@ -182,7 +182,7 @@ extern "C" bool PrintLCD(LCD_DISPLAY_MODE mode,char *msg) {
     return true;
 }
 
-extern "C" bool SetStringToLCD(LCD_DISPLAY_MODE mode,LCD_SPRITE_NUM num,char *msg) {
+bool SetStringToLCD(LCD_DISPLAY_MODE mode,LCD_SPRITE_NUM num,char *msg) {
 
     if( &lcdCtrlData[mode%LCD_DISPLAY_MODE_MAX] == lcdCtrlDataPtr )
     {

@@ -33,23 +33,11 @@ typedef struct tag_S_LCD_CTRL_DATA
     int spriteNum;
 } S_LCD_CTRL_DATA;
 
-#ifdef __cplusplus
-extern "C"
-#endif /* __cplusplus */
 void lcdSetup(LCD_DISPLAY_MODE mode);
 
-#ifdef __cplusplus
-extern "C"
-#endif /* __cplusplus */
 void lcdProc();
 
-#ifdef __cplusplus
-extern "C"
-#endif /* __cplusplus */
 bool PrintLCD(LCD_DISPLAY_MODE mode,char *msg);
 
-#ifdef __cplusplus
-extern "C"
-#endif /* __cplusplus */
 bool SetStringToLCD(LCD_DISPLAY_MODE mode,LCD_SPRITE_NUM num,char *msg);
 
