@@ -22,7 +22,6 @@ extern void telemetry_upload__main(void);
 #endif
 
 #define BUFFER_SIZE 32
-char szBuffer[BUFFER_SIZE];
 
 static void delay(unsigned long ms)
 {
@@ -31,7 +30,7 @@ static void delay(unsigned long ms)
 
 void sub_task(void *args)
 {
-    lcdSetup();
+    lcdSetup(LCD_DISPLAY_MODE1);
 
     for(;;) {
         lcdProc();
@@ -41,16 +40,25 @@ void sub_task(void *args)
 
 void main_task(void *args)
 {
+    int counter=0;
+    char szBuffer[BUFFER_SIZE];
+
     xTaskCreatePinnedToCore(sub_task, "subTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
-    PrintLCD("Study Timer!");
+    PrintLCD(LCD_DISPLAY_MODE1,"Study Timer!");
     for(;;) {
+//        PrintLCD(LCD_DISPLAY_MODE2,"00:00:00");
+        sprintf(szBuffer,"%09d",counter);
+        SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM0,szBuffer);
         delay(1000);
+        counter++;
     }
 }
 
 void app_main(void)
 {
     int counter=0;
+    char szBuffer[BUFFER_SIZE];
+
     ESP_LOGI(TAG, "APP_MAIN_START");
     xTaskCreatePinnedToCore(main_task, "mainTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
 
@@ -59,11 +67,12 @@ void app_main(void)
     {
         delay(1000);
         sprintf(szBuffer,"WaitForCnct(%d)",counter);
-        PrintLCD(szBuffer);
+        PrintLCD(LCD_DISPLAY_MODE1,szBuffer);
         counter++;
     }
-    PrintLCD("Connected");
+    PrintLCD(LCD_DISPLAY_MODE1,"Connected");
     delay(200);
     telemetry_upload__main();
-    PrintLCD("Telemetry Upload");
+    PrintLCD(LCD_DISPLAY_MODE1,"Telemetry Upload");
+    lcdSetup(LCD_DISPLAY_MODE2);
 }
