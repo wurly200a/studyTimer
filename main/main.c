@@ -7,14 +7,12 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 #include <string.h>
+#include "lcd_lib.hpp"
 
 static const char *TAG = "study_timer_main";
 
 extern bool isWifiConnected( void );
 extern void wps_main(void);
-extern void lcdSetup(void);
-extern void lcdProc(void);
-extern bool PrintLCD( char *msg );
 extern void telemetry_upload__main(void);
 
 #if CONFIG_FREERTOS_UNICORE
