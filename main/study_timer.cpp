@@ -7,6 +7,7 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 #include <string.h>
+#include "sys_lib.hpp"
 #include "lcd_lib.hpp"
 
 static const char *TAG = "study_timer_main";
@@ -22,11 +23,6 @@ extern void telemetry_upload__main(void);
 #endif
 
 #define BUFFER_SIZE 32
-
-static void delay(unsigned long ms)
-{
-    vTaskDelay(ms / portTICK_PERIOD_MS);
-}
 
 void sub_task(void *args)
 {
