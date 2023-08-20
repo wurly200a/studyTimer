@@ -5,4 +5,5 @@ idf_component_register(SRCS "main.c"
                             "lcd_lib.cpp"
                             "sova.cpp"
                             "telemetry_upload_main.cpp"
+                            "ntp.cpp"
                     INCLUDE_DIRS ".")
