@@ -45,7 +45,10 @@
 #define PINSTR "%c%c%c%c%c%c%c%c"
 #endif
 
-static const char *TAG = "example_wps";
+#define WIFI_SSID      "ssid"
+#define WIFI_PASSWORD  "password"
+
+static const char *TAG = "wifi";
 static esp_wps_config_t config = WPS_CONFIG_INIT_DEFAULT(WPS_MODE);
 static wifi_config_t wps_ap_creds[MAX_WPS_AP_CRED];
 static int s_ap_creds_num = 0;
@@ -53,7 +56,17 @@ static int s_retry_num = 0;
 
 static bool s_connected = false;
 
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
+        s_connected = true;
+    }
+}
+
+static void wifi_event_handler_for_wps(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
 {
     static int ap_idx = 1;
@@ -151,7 +164,7 @@ static void start_wps(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler_for_wps, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &got_ip_event_handler, NULL));
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -179,4 +192,28 @@ void wps_main(void)
     ESP_ERROR_CHECK( ret );
 
     start_wps();
+}
+
+void wifi_init_sta() {
+    tcpip_adapter_init();
+    esp_event_loop_create_default();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    esp_wifi_init(&cfg);
+
+    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL);
+
+    wifi_config_t wifi_config;
+    memset(&wifi_config, 0, sizeof(wifi_config));
+    strcpy((char*)wifi_config.sta.ssid, WIFI_SSID);
+    strcpy((char*)wifi_config.sta.password, WIFI_PASSWORD);
+
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    esp_wifi_start();
+}
+
+void wifi_main() {
+    nvs_flash_init();
+    wifi_init_sta();
 }
