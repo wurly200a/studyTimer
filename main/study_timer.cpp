@@ -102,7 +102,6 @@ void outputTimeToDisplay(unsigned long time, int lineNum);
 void portCheck(void);
 void portOnTriggerProc(void);
 void modeChangeProc(void);
-void printWifiStatus(void);
 string epochTimeToDateString(unsigned long epochTime);
 string getFormattedTime(unsigned long secs);
 void printMsg(string msg);
@@ -125,7 +124,7 @@ void sub_task(void *args)
 
     for(;;) {
         lcdProc();
-        delay(10);
+        delay(1);
     }
 }
 
@@ -158,7 +157,6 @@ void main_task(void *args)
     char szBuffer[BUFFER_SIZE];
 
     xTaskCreatePinnedToCore(sub_task, "subTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
-    PrintLCD(LCD_DISPLAY_MODE1,"Study Timer!");
     setup();
 
     for(;;) {
@@ -212,34 +210,6 @@ extern "C" void study_timer_main(void)
 
     ESP_LOGI(TAG, "STUDY_TIMER_MAIN_START");
     xTaskCreatePinnedToCore(main_task, "mainTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
-
-#if 1
-    wifi_main();
-#else
-    wps_main();
-#endif
-    while( !isWifiConnected() )
-    {
-        delay(1000);
-        sprintf(szBuffer,"WaitForCnct(%d)",counter);
-        PrintLCD(LCD_DISPLAY_MODE1,szBuffer);
-        counter++;
-    }
-    PrintLCD(LCD_DISPLAY_MODE1,"Connected");
-    ntp_init();
-    while( !isNtpSyncCompleted() )
-    {
-        delay(1000);
-        sprintf(szBuffer,"WaitForNtpSync(%d)",counter);
-        PrintLCD(LCD_DISPLAY_MODE1,szBuffer);
-        counter++;
-    }
-    delay(200);
-    lcdSetup(LCD_DISPLAY_MODE2);
-#if 0
-    telemetry_upload__main();
-    PrintLCD(LCD_DISPLAY_MODE1,"Telemetry Upload");
-#endif
 }
 
 int matchStrings(string str1, string str2) {
@@ -373,20 +343,6 @@ void modeChangeProc(void)
     }
 }
 
-void printWifiStatus(void)
-{
-//  IPAddress ip = WiFi.localIP();
-//  Serial.print("IP Address: ");
-//  Serial.println(ip);
-//
-//  Serial.println();
-//  Serial.print("To see this page in action, connect to ");
-//  Serial.print(ssid);
-//  Serial.print(" and open a browser to http://");
-//  Serial.println(ip);
-//  Serial.println();
-}
-
 string epochTimeToDateString(unsigned long epochTime) {
     time_t t = epochTime;
 
@@ -493,13 +449,32 @@ void actionFuncInitial(unsigned int previousStatus){
 }
 
 int stateFuncInitial(unsigned int eventTrigger){
+    static int initailSubStatus;
     int nextStatus = STATE_INITIAL;
 
 #if 1
-    if( isWifiConnected() && isNtpSyncCompleted() )
+    if( isWifiConnected() )
     {
-        delay(1000);
-        nextStatus = STATE_IDLE; /* tentative!!!! */
+        if( initailSubStatus == 0 )
+        {
+            PrintLCD(LCD_DISPLAY_MODE1,"Connected");
+            ntp_init();
+            initailSubStatus = 1;
+        }
+        else
+        {
+            // do nothing
+        }
+
+        if( isNtpSyncCompleted() )
+        {
+            PrintLCD(LCD_DISPLAY_MODE1,"Got current time");
+            nextStatus = STATE_IDLE; /* tentative!!!! */
+        }
+        else
+        {
+            // do nothing
+        }
     }
     else
     {
@@ -526,6 +501,9 @@ void actionFuncIdle(unsigned int previousStatus){
 //    timeClient.update();
     string lastDate = epochTimeToDateString(lastSentTimeStamp);
     string nowDate = epochTimeToDateString(getEpochTime());
+
+    lcdSetup(LCD_DISPLAY_MODE2);
+
     printMsg(lastDate);
     printMsg(nowDate);
     if( !lastDate.compare(nowDate) ){
@@ -605,27 +583,22 @@ int mySetup(void)
 {
     int nextStatus = STATE_INITIAL;
 
+    PrintLCD(LCD_DISPLAY_MODE1,"Study Timer!");
+
 //  Serial.begin(115200); // Start serial monitor
-//  afficheur.begin();    // Start OLED Display
 
     gpio_setup();
 
-//  WiFi.begin(ssid, password);
-//  while ( WiFi.status() != WL_CONNECTED ) {
+#if 1
+    wifi_main();
+#else
+    wps_main();
+#endif
 
-//    Serial.print ( "." );
-//  }
- 
-//  Serial.println("You're connected to the network");
-//  Serial.println();
-  
-//  printWifiStatus();
-
-    // Get current time
-//  timeClient.begin();
-//  timeClient.setTimeOffset(32400);
-
-//  afficheur.fillScreen(BLACK); // Set background color
+#if 0
+    telemetry_upload__main();
+    PrintLCD(LCD_DISPLAY_MODE1,"Telemetry Upload");
+#endif
 
 #if 0
     if( connectToThingsBoard() ) {
