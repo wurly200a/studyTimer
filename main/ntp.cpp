@@ -11,6 +11,7 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 #include "esp_sntp.h"
+#include "sys_lib.hpp"
 
 static void initialize_sntp(void);
 
@@ -32,10 +33,10 @@ void ntp_init(void) {
     time_t now = 0;
     struct tm timeinfo = { 0 };
     int retry = 0;
-    const int retry_count = 10;
+    const int retry_count = 500;
     while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < retry_count) {
         ESP_LOGI(TAG, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        delay(10);
     }
     time(&now);
     localtime_r(&now, &timeinfo);

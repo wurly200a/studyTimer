@@ -84,6 +84,10 @@ extern bool isNtpSyncCompleted(void);
 extern unsigned int getEpochTime();
 extern void tentativeTimeIncrement();
 
+extern void gpio_setup(void);
+extern bool gpio_port_read(int io_num);
+extern void gpio_main(void);
+
 #if CONFIG_FREERTOS_UNICORE
 #define ARDUINO_RUNNING_CORE 0
 #else
@@ -143,7 +147,7 @@ void setup() {
     currentStatus = nextStatus;
 }
 
-#define MAIN_TSK_TICK 10 /* msec */
+#define MAIN_TSK_TICK 1 /* msec */
 
 static int idle5secTimer;
 static int idle1secTimer;
@@ -161,8 +165,6 @@ void main_task(void *args)
         int nextStatus;
         unsigned int eventTrigger = 0;
 
-//        PrintLCD(LCD_DISPLAY_MODE2,"00:00:00");
-
         if( 100/MAIN_TSK_TICK <= idle100msecTimer ){
 #if 0
             char tempString[20];
@@ -177,12 +179,11 @@ void main_task(void *args)
         if( 1000/MAIN_TSK_TICK <= idle1secTimer ){
             eventTrigger |= TRIGGER_1SEC;
             idle1secTimer=0;
-
-//            sprintf(szBuffer,"%09d",counter);
-//            SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM0,szBuffer);
+#if 0
             sprintf(szBuffer,"currentSts:%01d",currentStatus);
             SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM3,szBuffer);
             counter++;
+#endif
             tentativeTimeIncrement();
         }
         idle1secTimer++;
@@ -283,7 +284,7 @@ void outputTimeToDisplay(unsigned long time, int lineNum)
   if( displayMode == 0 ){
     string timeString = getFormattedTime(time);
     int matchStringNum = matchStrings(lastTimeString[lineNum],timeString);
-#if 1
+
     LCD_SPRITE_NUM num;
     switch( lineNum )
     {
@@ -301,13 +302,6 @@ void outputTimeToDisplay(unsigned long time, int lineNum)
         break;
     }
     SetStringToLCD(LCD_DISPLAY_MODE2,num,(char *)timeString.c_str());
-#else
-    afficheur.fillRect(PIXEL_X_WIDTH_FONT2*matchStringNum, y, PIXEL_X_WIDTH_FONT2*(PIXEL_X_WIDTH_NUM_FONT2-matchStringNum), 16, BLACK); // x, y, w, h, color
-    afficheur.setCursor(0,y);
-    afficheur.setTextSize(size);
-    afficheur.setTextColor(WHITE);
-    afficheur.print(timeString.c_str());
-#endif
     lastTimeString[lineNum] = timeString;
   } else {
     // do nothing
@@ -316,12 +310,11 @@ void outputTimeToDisplay(unsigned long time, int lineNum)
 
 void portCheck(void)
 {
-#if 0
     for( int i=0; i<SWITCH_NUM_MAX; i++ ){
         if( switchTriggerMaskCount[i] ){
             switchTriggerMaskCount[i]--;
         } else {
-            if( 0/*digitalRead(switchOnTable[i])*/ ){
+            if( gpio_port_read(switchOnTable[i]) ){
                 switchOnCount[i] = 0;
             } else {
                 switchOnCount[i]++;
@@ -334,7 +327,6 @@ void portCheck(void)
             }
         }
     }
-#endif
 }
 
 void portOnTriggerProc(void)
@@ -374,7 +366,7 @@ void modeChangeProc(void)
 {
     if( switchTrigger[SWITCH_MODE] ){
         displayMode ^= 1;
-//      displayInit(!displayMode);
+        displayInit(!displayMode);
         switchTrigger[SWITCH_MODE]= false;
     } else {
         // do nothing
@@ -463,7 +455,7 @@ void displayInit(bool displayOn){
         outputTimeToDisplay(integrationTime,LINE_NUM3);
         printMsg("");
     } else {
-//    afficheur.fillScreen(BLACK);
+        ClearLCD();
     }
 }
 
@@ -616,11 +608,7 @@ int mySetup(void)
 //  Serial.begin(115200); // Start serial monitor
 //  afficheur.begin();    // Start OLED Display
 
-//  pinMode( DIN_PIN, INPUT); 
-//  pinMode( DIN_PIN, INPUT_PULLUP );
-
-//  pinMode( DIN_MODE_PIN, INPUT); 
-//  pinMode( DIN_MODE_PIN, INPUT_PULLUP );
+    gpio_setup();
 
 //  WiFi.begin(ssid, password);
 //  while ( WiFi.status() != WL_CONNECTED ) {

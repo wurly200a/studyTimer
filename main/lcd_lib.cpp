@@ -211,3 +211,8 @@ bool SetStringToLCD(LCD_DISPLAY_MODE mode,LCD_SPRITE_NUM num,char *msg) {
 
     return true;
 }
+
+void ClearLCD(void) {
+    display.fill( 0x00 );
+    display.clear();
+}

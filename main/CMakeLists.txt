@@ -6,4 +6,5 @@ idf_component_register(SRCS "main.c"
                             "sova.cpp"
                             "telemetry_upload_main.cpp"
                             "ntp.cpp"
+                            "gpio.cpp"
                     INCLUDE_DIRS ".")

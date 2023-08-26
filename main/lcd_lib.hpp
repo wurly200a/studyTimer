@@ -41,3 +41,4 @@ bool PrintLCD(LCD_DISPLAY_MODE mode,char *msg);
 
 bool SetStringToLCD(LCD_DISPLAY_MODE mode,LCD_SPRITE_NUM num,char *msg);
 
+void ClearLCD(void);
