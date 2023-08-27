@@ -9,4 +9,4 @@ void thingsBoardSendTelemetryInt(const char *key,long value);
 void thingsBoardSendTelemetryBool(const char *key,bool value);
 void thingsBoardSendAttributeInt(const char *key,long value);
 void connectToThingsBoard(void);
-void telemetry_upload__main(void);
+void disconnectFromThingsBoard(void);

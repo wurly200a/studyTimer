@@ -21,7 +21,7 @@
 #include "sys_lib.hpp"
 #include "thingsboard.hpp"
 
-void parseAndStoreData(const char* jsonString, unsigned long* todayTotalStudyTime, unsigned long* todayTotalStudyTimeTimeStamp);
+static void parseAndStoreData(const char* jsonString, unsigned long* todayTotalStudyTime, unsigned long* todayTotalStudyTimeTimeStamp);
 
 static tbcmh_handle_t tb_client;
 static bool s_connected = false;
@@ -152,7 +152,7 @@ void thingsBoardSendTelemetry(const char *str)
 
 void thingsBoardSendTelemetryInt(const char *key,long value)
 {
-    char szBuffer[BUFFER_SIZE];
+    static char szBuffer[BUFFER_SIZE];
 
     if (tbcmh_is_connected(tb_client)) {
         sprintf(szBuffer,"{\"%s\": %ld}",key,value);
@@ -165,7 +165,7 @@ void thingsBoardSendTelemetryInt(const char *key,long value)
 
 void thingsBoardSendTelemetryBool(const char *key,bool value)
 {
-    char szBuffer[BUFFER_SIZE];
+    static char szBuffer[BUFFER_SIZE];
 
     if (tbcmh_is_connected(tb_client)) {
         sprintf(szBuffer,"{\"%s\": %s}",key,value ? "true" : "false" );
@@ -178,7 +178,7 @@ void thingsBoardSendTelemetryBool(const char *key,bool value)
 
 void thingsBoardSendAttributeInt(const char *key,long value)
 {
-    char szBuffer[BUFFER_SIZE];
+    static char szBuffer[BUFFER_SIZE];
 
     if (tbcmh_is_connected(tb_client)) {
         sprintf(szBuffer,"{\"%s\": %ld}",key,value);
@@ -251,16 +251,17 @@ void connectToThingsBoard(void)
     }
 }
 
-void connectFromThingsBoard(void)
+void disconnectFromThingsBoard(void)
 {
     ESP_LOGI(TAG, "Disconnect tbcmh ...");
     tbcmh_disconnect(tb_client);
 
     ESP_LOGI(TAG, "Destroy tbcmh ...");
     tbcmh_destroy(tb_client);
+    s_connected = false;
 }
 
-void parseAndStoreData(const char* jsonString, unsigned long* todayTotalStudyTime, unsigned long* todayTotalStudyTimeTimeStamp) {
+static void parseAndStoreData(const char* jsonString, unsigned long* todayTotalStudyTime, unsigned long* todayTotalStudyTimeTimeStamp) {
     cJSON* root = cJSON_Parse(jsonString);
     if (root == NULL) {
         const char* error_ptr = cJSON_GetErrorPtr();

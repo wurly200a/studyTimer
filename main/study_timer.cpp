@@ -33,23 +33,11 @@ constexpr const char STUDY_KEY[] = "study";
 constexpr const char STUDY_TIME_KEY[] = "todayTotalStudyTime";
 constexpr const char STUDY_TIME_STAMP_KEY[] = "todayTotalStudyTimeTimeStamp";
 
-#if 0
-const Attribute_Request_Callback clientCallback(REQUESTED_CLIENT_ATTRIBUTES.cbegin(), REQUESTED_CLIENT_ATTRIBUTES.cend(), &processClientAttributeRequest);
-#endif
-
-// Statuses for requesting of attributes
-bool requestedClient = false;
-
-//WiFiUDP ntpUDP;
-//NTPClient timeClient(ntpUDP);
-
 unsigned long currentTime=0;
 unsigned long startTime=0;
 unsigned long integrationTime=0;
 unsigned long lastIntegrationTime=0;
 unsigned long lastSentTimeStamp=0;
-
-//int status = WL_IDLE_STATUS;
 
 #define DIN_PIN 2
 #define DIN_MODE_PIN 0
@@ -153,7 +141,7 @@ static int idle100msecTimer;
 void main_task(void *args)
 {
     int counter=0;
-    char szBuffer[BUFFER_SIZE];
+    static char szBuffer[BUFFER_SIZE];
 
     xTaskCreatePinnedToCore(sub_task, "subTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
     setup();
@@ -205,7 +193,7 @@ void main_task(void *args)
 extern "C" void study_timer_main(void)
 {
     int counter=0;
-    char szBuffer[BUFFER_SIZE];
+    static char szBuffer[BUFFER_SIZE];
 
     ESP_LOGI(TAG, "STUDY_TIMER_MAIN_START");
     xTaskCreatePinnedToCore(main_task, "mainTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
@@ -250,7 +238,6 @@ string lastTimeString[LINE_NUM_MAX];
 void outputTimeToDisplay(unsigned long time, int lineNum)
 {
   int size=2;
-//  int y=STR_HEIGHT*lineNum;
 
   if( displayMode == 0 ){
     string timeString = getFormattedTime(time);
@@ -367,14 +354,13 @@ string getFormattedTime(unsigned long secs) {
 
 void printMsg(string msg) {
     outputString(msg);
-//  Serial.println(msg);
 }
 
 void updateTimeProc(void) {
-//  timeClient.update();
     unsigned int nowTime = 0;
 
-  nowTime = getEpochTime();
+//  timeClient.update();
+    nowTime = getEpochTime();
 
     if( currentTime != nowTime ) {
         outputTimeToDisplay(nowTime,LINE_NUM1);
@@ -384,23 +370,6 @@ void updateTimeProc(void) {
         currentTime = nowTime;
     }
 }
-
-#if 0
-void processClientAttributeRequest(const Shared_Attribute_Data &data) {
-    for (auto it = data.begin(); it != data.end(); ++it) {
-        if( !strcmp(it->key().c_str(),STUDY_TIME_KEY) ) {
-            lastIntegrationTime = it->value().as<int>();
-        } else if( !strcmp(it->key().c_str(),STUDY_TIME_STAMP_KEY) ) {
-            lastSentTimeStamp = it->value().as<int>();
-        } else {
-//      Serial.println(it->key().c_str());
-//      Serial.println(it->value().as<int>());
-        }
-    }
-
-    bRequestingAttributes = false;
-}
-#endif
 
 void displayInit(bool displayOn){
     if( displayOn ){
@@ -415,16 +384,10 @@ void displayInit(bool displayOn){
 ///////////////////////////////////////////////////////////////////////////
 
 void actionFuncInitial(unsigned int previousStatus){
-#if 0
-    if (!requestedClient) {
-        printMsg("Requesting attrs...");
-//    requestedClient = tb.Client_Attributes_Request(clientCallback);
-        if (!requestedClient) {
-            printMsg("Failed to get attrs");
-        } else {
-            bRequestingAttributes = true;
-        }
-    }
+#if 1
+    wifi_main();
+#else
+    wps_main();
 #endif
 }
 
@@ -477,17 +440,24 @@ int stateFuncInitial(unsigned int eventTrigger){
                         }
                     }
                 } else {
-#if 0 // retry
-                    counter++;
-                    if( 3000 < counter )
+                    if( initailSubStatus == 2 )
                     {
-                        initailSubStatus = 1;
+                        counter++;
+                        if( 7000 < counter )
+                        {
+                            // retry
+                            disconnectFromThingsBoard();
+                            connectToThingsBoard();
+                        }
+                        else
+                        {
+                            // do nothing
+                        }
                     }
                     else
                     {
                         // do nothing
                     }
-#endif
                 }
 
 
@@ -510,20 +480,6 @@ int stateFuncInitial(unsigned int eventTrigger){
     {
         // do nothing
     }
-
-#if 0
-    if( bRequestingAttributes ){
-        // wait to get attributes
-    } else {
-        nextStatus = STATE_IDLE;
-    }
-
-    if (!isThingsBoardConnected()) {
-        nextStatus = STATE_ERROR;
-    }else{
-        thingsBoardLoop(); // event loop of MQTT client
-    }
-#endif
 
     return nextStatus;
 }
@@ -556,11 +512,9 @@ void actionFuncIdle(unsigned int previousStatus){
 
 int stateFuncIdle(unsigned int eventTrigger){
     int nextStatus = STATE_IDLE;
-//    static int counter;
-//    char szBuffer[BUFFER_SIZE];
 
     portCheck();
-  
+
     if( eventTrigger & TRIGGER_100MSEC ){
         updateTimeProc();
         portOnTriggerProc();
@@ -568,17 +522,17 @@ int stateFuncIdle(unsigned int eventTrigger){
     }
 
     if( eventTrigger & TRIGGER_1SEC ){
-#if 0
         if (!isThingsBoardConnected()) {
             nextStatus = STATE_ERROR;
         }else{
             // do nothing
         }
-#endif
         thingsBoardLoop(); // event loop of MQTT client
     }
 
     if( eventTrigger & TRIGGER_5SEC ){
+//        static int counter;
+//        static char szBuffer[BUFFER_SIZE];
 //        counter++;
 //        sprintf(szBuffer,"{\"counter\": %d}",counter);
 //        thingsBoardSendTelemetry(szBuffer);
@@ -588,26 +542,21 @@ int stateFuncIdle(unsigned int eventTrigger){
 }
 
 void actionFuncError(unsigned int previousStatus){
-//  printMsg("Connect error");
+    printMsg("Connect error");
+
+    disconnectFromThingsBoard();
+    connectToThingsBoard();
 }
 
 int stateFuncError(unsigned int eventTrigger){
     int nextStatus = STATE_ERROR;
 
     if( eventTrigger & TRIGGER_1SEC ){
-#if 0
-        if (!isThingsBoardConnected()) {
-            if( connectToThingsBoard() ) {
-//        printMsg("Recovered");
-                nextStatus = STATE_IDLE;
-            } else {
-                // do nothing
-            }
+        if (isThingsBoardConnected()) {
+            nextStatus = STATE_IDLE;
         }else{
-            // do nothing
+            thingsBoardLoop(); // event loop of MQTT client
         }
-
-#endif
     }
 
     return nextStatus;
@@ -621,17 +570,8 @@ int mySetup(void)
 
     PrintLCD(LCD_DISPLAY_MODE1,"Study Timer!");
 
-//  Serial.begin(115200); // Start serial monitor
-
     gpio_setup();
 
-#if 1
-    wifi_main();
-#else
-    wps_main();
-#endif
-
-    nextStatus = STATE_INITIAL;
     return nextStatus;
 }
 
