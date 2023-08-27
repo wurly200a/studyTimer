@@ -10,6 +10,7 @@
 #include "sys_lib.hpp"
 #include "lcd_lib.hpp"
 #include <string>
+#include "thingsboard.hpp"
 
 using namespace std;
 
@@ -77,11 +78,6 @@ static const char *TAG = "study_timer_main";
 extern void wifi_main();
 extern bool isWifiConnected( void );
 extern void wps_main(void);
-extern bool isThingsBoardConnected(void);
-extern void thingsBoardLoop(void);
-extern void thingsBoardSendTelemetry(char *str);
-extern void connectToThingsBoard(void);
-extern void telemetry_upload__main(void);
 extern void ntp_init(void);
 extern bool isNtpSyncCompleted(void);
 
@@ -239,6 +235,8 @@ void outputString(string str)
     } else {
         // do nothing
     }
+
+    ESP_LOGI(TAG, "outputString: %s", str.c_str());
 }
 
 enum
@@ -310,23 +308,19 @@ void portOnTriggerProc(void)
             integrationTime += currentTime-startTime;
             outputTimeToDisplay(integrationTime,LINE_NUM3);
             startTime = 0;
-#if 0
             if( isThingsBoardConnected() ){
-                tb.sendTelemetryBool(STUDY_KEY,false);
-                tb.sendAttributeInt(STUDY_TIME_KEY,integrationTime);
-                tb.sendAttributeInt(STUDY_TIME_STAMP_KEY,timeClient.getEpochTime());
-                tb.sendTelemetryInt(STUDY_TIME_KEY,integrationTime);
+                thingsBoardSendTelemetryBool(STUDY_KEY,false);
+                thingsBoardSendAttributeInt(STUDY_TIME_KEY,integrationTime);
+                thingsBoardSendAttributeInt(STUDY_TIME_STAMP_KEY,getEpochTime());
+                thingsBoardSendTelemetryInt(STUDY_TIME_KEY,integrationTime);
             }
-#endif
             measureOn = false;
         } else {
             // from OFF to ON
             startTime = currentTime;
-#if 0
             if( isThingsBoardConnected() ){
-                tb.sendTelemetryBool(STUDY_KEY,true);
+                thingsBoardSendTelemetryBool(STUDY_KEY,true);
             }
-#endif
             measureOn = true;
         }
         switchTrigger[SWITCH_START_STOP]= false;
@@ -421,6 +415,7 @@ void displayInit(bool displayOn){
 ///////////////////////////////////////////////////////////////////////////
 
 void actionFuncInitial(unsigned int previousStatus){
+#if 0
     if (!requestedClient) {
         printMsg("Requesting attrs...");
 //    requestedClient = tb.Client_Attributes_Request(clientCallback);
@@ -430,6 +425,7 @@ void actionFuncInitial(unsigned int previousStatus){
             bRequestingAttributes = true;
         }
     }
+#endif
 }
 
 int stateFuncInitial(unsigned int eventTrigger){
@@ -462,12 +458,26 @@ int stateFuncInitial(unsigned int eventTrigger){
             }
             else
             {
-                if( isThingsBoardConnected() ) {
-                    nextStatus = STATE_IDLE;
+                if( isThingsBoardConnected() )
+                {
+                    if( initailSubStatus == 2 )
+                    {
+                        thingsBoardClientAttributesrequestSend();
+                        initailSubStatus = 3;
+                    }
+                    else
+                    {
+                        if( getClientAttribute(&lastIntegrationTime,&lastSentTimeStamp) )
+                        {
+                            nextStatus = STATE_IDLE;
+                        }
+                        else
+                        {
+                            // do nothing
+                        }
+                    }
                 } else {
-                    thingsBoardLoop();
 #if 0 // retry
-
                     counter++;
                     if( 3000 < counter )
                     {
@@ -478,6 +488,16 @@ int stateFuncInitial(unsigned int eventTrigger){
                         // do nothing
                     }
 #endif
+                }
+
+
+                if( 2 <= initailSubStatus )
+                {
+                    thingsBoardLoop();
+                }
+                else
+                {
+                    // do nothing
                 }
             }
         }
@@ -518,7 +538,7 @@ void actionFuncIdle(unsigned int previousStatus){
 
     printMsg(lastDate);
     printMsg(nowDate);
-    if( !lastDate.compare(nowDate) ){
+    if( lastDate.compare(nowDate) ){
       integrationTime = 0;
     } else {
       integrationTime = lastIntegrationTime;
@@ -536,8 +556,8 @@ void actionFuncIdle(unsigned int previousStatus){
 
 int stateFuncIdle(unsigned int eventTrigger){
     int nextStatus = STATE_IDLE;
-    static int counter;
-    char szBuffer[BUFFER_SIZE];
+//    static int counter;
+//    char szBuffer[BUFFER_SIZE];
 
     portCheck();
   
@@ -559,9 +579,9 @@ int stateFuncIdle(unsigned int eventTrigger){
     }
 
     if( eventTrigger & TRIGGER_5SEC ){
-        counter++;
-        sprintf(szBuffer,"{\"counter\": %d}",counter);
-        thingsBoardSendTelemetry(szBuffer);
+//        counter++;
+//        sprintf(szBuffer,"{\"counter\": %d}",counter);
+//        thingsBoardSendTelemetry(szBuffer);
     }
 
     return nextStatus;

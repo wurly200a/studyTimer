@@ -19,14 +19,30 @@
 
 #include "tbc_mqtt_helper.h"
 #include "sys_lib.hpp"
+#include "thingsboard.hpp"
+
+void parseAndStoreData(const char* jsonString, unsigned long* todayTotalStudyTime, unsigned long* todayTotalStudyTimeTimeStamp);
 
 static tbcmh_handle_t tb_client;
 static bool s_connected = false;
+static bool s_clientAttributesGot = false;
 
 static const char *TAG = "THINGSBOARD";
 
+#define BUFFER_SIZE 32
+
 #define CONFIG_BROKER_URL "mqtt://demo.thingsboard.io"
 #define CONFIG_ACCESS_TOKEN "xxxxxx"
+
+#define CLIENTATTRIBUTE_SETPOINT    	"todayTotalStudyTimeTimeStamp"
+#define SHAREDATTRIBUTE_SNTP_SERVER     "sntp_server"
+
+constexpr const char STUDY_KEY[] = "study";
+constexpr const char STUDY_TIME_KEY[] = "todayTotalStudyTime";
+constexpr const char STUDY_TIME_STAMP_KEY[] = "todayTotalStudyTimeTimeStamp";
+
+unsigned long todayTotalStudyTime;
+unsigned long todayTotalStudyTimeTimeStamp;
 
 /*!< Callback of connected ThingsBoard MQTT */
 void tb_on_connected(tbcmh_handle_t client, void *context)
@@ -42,6 +58,56 @@ void tb_on_disconnected(tbcmh_handle_t client, void *context)
     ESP_LOGI(TAG, "Disconnected from thingsboard server!");
 }
 
+bool getClientAttribute(unsigned long* todayTotalStudyTimePtr, unsigned long* todayTotalStudyTimeTimeStampPtr)
+{
+    if( s_clientAttributesGot )
+    {
+        *todayTotalStudyTimePtr          = todayTotalStudyTime;
+        *todayTotalStudyTimeTimeStampPtr = todayTotalStudyTimeTimeStamp;
+    }
+    else
+    {
+        // do nothing;
+    }
+
+    return s_clientAttributesGot;
+}
+
+void tb_attributesrequest_on_response(tbcmh_handle_t client,
+                             void *context,
+                             const cJSON *client_attributes,
+                             const cJSON *shared_attributes) //, uint32_t request_id
+{
+    ESP_LOGI(TAG, "Receiving response of the attributes request!"); //request_id=%u, request_id
+
+    if (client_attributes) {
+        char *pack = cJSON_PrintUnformatted(client_attributes); //cJSON_Print()
+        ESP_LOGI(TAG, "client_attributes: %s", pack);
+
+        parseAndStoreData(pack, &todayTotalStudyTime, &todayTotalStudyTimeTimeStamp);
+        ESP_LOGI(TAG,"todayTotalStudyTime: %lu\n", todayTotalStudyTime);
+        ESP_LOGI(TAG,"todayTotalStudyTimeTimeStamp: %lu\n", todayTotalStudyTimeTimeStamp);
+
+        cJSON_free(pack); // free memory
+        s_clientAttributesGot = true;
+    }
+
+    if (shared_attributes) {
+        char *pack = cJSON_PrintUnformatted(shared_attributes); //cJSON_Print()
+        ESP_LOGI(TAG, "shared_attributes: %s", pack);
+        cJSON_free(pack); // free memory
+    }
+}
+
+// return 2 if tbcmh_disconnect()/tbcmh_destroy() is called inside it.
+//      Caller (TBCMH library) will process other attributes request timeout.
+// return 0/ESP_OK on success
+// return -1/ESP_FAIL on failure
+void tb_attributesrequest_on_timeout(tbcmh_handle_t client, void *context) //, uint32_t request_id
+{
+    ESP_LOGI(TAG, "Timeout of the attributes request!"); // request_id=%u, request_id
+}
+
 bool isThingsBoardConnected(void)
 {
     return s_connected;
@@ -54,16 +120,70 @@ void thingsBoardLoop(void)
     }
 }
 
-void thingsBoardSendTelemetry(char *str)
+void thingsBoardClientAttributesrequestSend(void)
+{
+    tbcmh_clientattributes_request(tb_client,NULL,
+                             (tbcmh_attributes_on_response_t)tb_attributesrequest_on_response,
+                             (tbcmh_attributes_on_timeout_t)tb_attributesrequest_on_timeout,
+                             2,STUDY_TIME_KEY, STUDY_TIME_STAMP_KEY);
+    s_clientAttributesGot = false;
+}
+
+void thingsBoardAttributesrequestSend(void)
+{
+    ESP_LOGI(TAG, "Request attributes, client attributes: %s; shared attributes: %s",
+        CLIENTATTRIBUTE_SETPOINT, SHAREDATTRIBUTE_SNTP_SERVER);
+
+    tbcmh_attributes_request(tb_client, NULL,
+                             (tbcmh_attributes_on_response_t)tb_attributesrequest_on_response,
+                             (tbcmh_attributes_on_timeout_t)tb_attributesrequest_on_timeout,
+                             CLIENTATTRIBUTE_SETPOINT, SHAREDATTRIBUTE_SNTP_SERVER);
+}
+
+void thingsBoardSendTelemetry(const char *str)
 {
     if (tbcmh_is_connected(tb_client)) {
-#if 1
         tbcmh_telemetry_upload(tb_client, str,
                                1/*qos*/, 0/*retain*/);
-#else
-        tbcmh_telemetry_upload(tb_client, "{\"temprature\": 25.5}",
+    } else {
+        ESP_LOGI(TAG, "Still NOT connected to server!");
+    }
+}
+
+void thingsBoardSendTelemetryInt(const char *key,long value)
+{
+    char szBuffer[BUFFER_SIZE];
+
+    if (tbcmh_is_connected(tb_client)) {
+        sprintf(szBuffer,"{\"%s\": %ld}",key,value);
+        tbcmh_telemetry_upload(tb_client, szBuffer,
                                1/*qos*/, 0/*retain*/);
-#endif
+    } else {
+        ESP_LOGI(TAG, "Still NOT connected to server!");
+    }
+}
+
+void thingsBoardSendTelemetryBool(const char *key,bool value)
+{
+    char szBuffer[BUFFER_SIZE];
+
+    if (tbcmh_is_connected(tb_client)) {
+        sprintf(szBuffer,"{\"%s\": %s}",key,value ? "true" : "false" );
+        tbcmh_telemetry_upload(tb_client, szBuffer,
+                               1/*qos*/, 0/*retain*/);
+    } else {
+        ESP_LOGI(TAG, "Still NOT connected to server!");
+    }
+}
+
+void thingsBoardSendAttributeInt(const char *key,long value)
+{
+    char szBuffer[BUFFER_SIZE];
+
+    if (tbcmh_is_connected(tb_client)) {
+        sprintf(szBuffer,"{\"%s\": %ld}",key,value);
+        tbcmh_attributes_update(tb_client, szBuffer,
+                               1/*qos*/, 0/*retain*/);
     } else {
         ESP_LOGI(TAG, "Still NOT connected to server!");
     }
@@ -138,4 +258,26 @@ void connectFromThingsBoard(void)
 
     ESP_LOGI(TAG, "Destroy tbcmh ...");
     tbcmh_destroy(tb_client);
+}
+
+void parseAndStoreData(const char* jsonString, unsigned long* todayTotalStudyTime, unsigned long* todayTotalStudyTimeTimeStamp) {
+    cJSON* root = cJSON_Parse(jsonString);
+    if (root == NULL) {
+        const char* error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error before: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    cJSON* integrationTimeNode = cJSON_GetObjectItem(root, "todayTotalStudyTime");
+    cJSON* sentTimeStampNode = cJSON_GetObjectItem(root, "todayTotalStudyTimeTimeStamp");
+
+    if (integrationTimeNode != NULL && integrationTimeNode->type == cJSON_Number &&
+        sentTimeStampNode != NULL && sentTimeStampNode->type == cJSON_Number) {
+        *todayTotalStudyTime = (unsigned long)integrationTimeNode->valuedouble;
+        *todayTotalStudyTimeTimeStamp = (unsigned long)sentTimeStampNode->valuedouble;
+    }
+
+    cJSON_Delete(root);
 }
