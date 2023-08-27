@@ -77,6 +77,10 @@ static const char *TAG = "study_timer_main";
 extern void wifi_main();
 extern bool isWifiConnected( void );
 extern void wps_main(void);
+extern bool isThingsBoardConnected(void);
+extern void thingsBoardLoop(void);
+extern void thingsBoardSendTelemetry(char *str);
+extern void connectToThingsBoard(void);
 extern void telemetry_upload__main(void);
 extern void ntp_init(void);
 extern bool isNtpSyncCompleted(void);
@@ -107,7 +111,6 @@ string getFormattedTime(unsigned long secs);
 void printMsg(string msg);
 void updateTimeProc(void);
 void displayInit(bool displayOn);
-bool connectToThingsBoard(void);
 void actionFuncInitial(unsigned int previousStatus);
 int stateFuncInitial(unsigned int eventTrigger);
 void actionFuncIdle(unsigned int previousStatus);
@@ -177,7 +180,7 @@ void main_task(void *args)
         if( 1000/MAIN_TSK_TICK <= idle1secTimer ){
             eventTrigger |= TRIGGER_1SEC;
             idle1secTimer=0;
-#if 0
+#if 1
             sprintf(szBuffer,"currentSts:%01d",currentStatus);
             SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM3,szBuffer);
             counter++;
@@ -308,7 +311,7 @@ void portOnTriggerProc(void)
             outputTimeToDisplay(integrationTime,LINE_NUM3);
             startTime = 0;
 #if 0
-            if( tb.connected() ){
+            if( isThingsBoardConnected() ){
                 tb.sendTelemetryBool(STUDY_KEY,false);
                 tb.sendAttributeInt(STUDY_TIME_KEY,integrationTime);
                 tb.sendAttributeInt(STUDY_TIME_STAMP_KEY,timeClient.getEpochTime());
@@ -320,7 +323,7 @@ void portOnTriggerProc(void)
             // from OFF to ON
             startTime = currentTime;
 #if 0
-            if( tb.connected() ){
+            if( isThingsBoardConnected() ){
                 tb.sendTelemetryBool(STUDY_KEY,true);
             }
 #endif
@@ -415,25 +418,6 @@ void displayInit(bool displayOn){
     }
 }
 
-bool connectToThingsBoard(void){
-    bool rtn = false;
-
-    printMsg("Connecting...");
-//  Serial.print(THINGSBOARD_SERVER);
-//  Serial.print(" with token ");
-//  Serial.println(TOKEN);
-#if 0
-    if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
-        printMsg("Disconnected");
-    } else {
-        printMsg("Connected");
-        rtn = true;
-    }
-#endif
-
-    return rtn;
-}
-
 ///////////////////////////////////////////////////////////////////////////
 
 void actionFuncInitial(unsigned int previousStatus){
@@ -451,8 +435,8 @@ void actionFuncInitial(unsigned int previousStatus){
 int stateFuncInitial(unsigned int eventTrigger){
     static int initailSubStatus;
     int nextStatus = STATE_INITIAL;
+    int counter=0;
 
-#if 1
     if( isWifiConnected() )
     {
         if( initailSubStatus == 0 )
@@ -468,8 +452,34 @@ int stateFuncInitial(unsigned int eventTrigger){
 
         if( isNtpSyncCompleted() )
         {
-            PrintLCD(LCD_DISPLAY_MODE1,"Got current time");
-            nextStatus = STATE_IDLE; /* tentative!!!! */
+            if( initailSubStatus == 1 )
+            {
+                PrintLCD(LCD_DISPLAY_MODE1,"Got current time");
+                PrintLCD(LCD_DISPLAY_MODE1,"Connect to ThingsBoard");
+                connectToThingsBoard();
+                initailSubStatus = 2;
+                counter=0;
+            }
+            else
+            {
+                if( isThingsBoardConnected() ) {
+                    nextStatus = STATE_IDLE;
+                } else {
+                    thingsBoardLoop();
+#if 0 // retry
+
+                    counter++;
+                    if( 3000 < counter )
+                    {
+                        initailSubStatus = 1;
+                    }
+                    else
+                    {
+                        // do nothing
+                    }
+#endif
+                }
+            }
         }
         else
         {
@@ -480,16 +490,18 @@ int stateFuncInitial(unsigned int eventTrigger){
     {
         // do nothing
     }
-#else
+
+#if 0
     if( bRequestingAttributes ){
         // wait to get attributes
-    } else {        nextStatus = STATE_IDLE;
+    } else {
+        nextStatus = STATE_IDLE;
     }
 
-    if (!tb.connected()) {
+    if (!isThingsBoardConnected()) {
         nextStatus = STATE_ERROR;
     }else{
-        tb.loop(); // event loop of MQTT client
+        thingsBoardLoop(); // event loop of MQTT client
     }
 #endif
 
@@ -524,6 +536,8 @@ void actionFuncIdle(unsigned int previousStatus){
 
 int stateFuncIdle(unsigned int eventTrigger){
     int nextStatus = STATE_IDLE;
+    static int counter;
+    char szBuffer[BUFFER_SIZE];
 
     portCheck();
   
@@ -535,17 +549,19 @@ int stateFuncIdle(unsigned int eventTrigger){
 
     if( eventTrigger & TRIGGER_1SEC ){
 #if 0
-        if (!tb.connected()) {
+        if (!isThingsBoardConnected()) {
             nextStatus = STATE_ERROR;
         }else{
             // do nothing
         }
-
-        tb.loop(); // event loop of MQTT client
 #endif
+        thingsBoardLoop(); // event loop of MQTT client
     }
 
     if( eventTrigger & TRIGGER_5SEC ){
+        counter++;
+        sprintf(szBuffer,"{\"counter\": %d}",counter);
+        thingsBoardSendTelemetry(szBuffer);
     }
 
     return nextStatus;
@@ -560,7 +576,7 @@ int stateFuncError(unsigned int eventTrigger){
 
     if( eventTrigger & TRIGGER_1SEC ){
 #if 0
-        if (!tb.connected()) {
+        if (!isThingsBoardConnected()) {
             if( connectToThingsBoard() ) {
 //        printMsg("Recovered");
                 nextStatus = STATE_IDLE;
@@ -595,18 +611,6 @@ int mySetup(void)
     wps_main();
 #endif
 
-#if 0
-    telemetry_upload__main();
-    PrintLCD(LCD_DISPLAY_MODE1,"Telemetry Upload");
-#endif
-
-#if 0
-    if( connectToThingsBoard() ) {
-        nextStatus = STATE_INITIAL;
-    } else {
-        nextStatus = STATE_ERROR;
-    }
-#endif
     nextStatus = STATE_INITIAL;
     return nextStatus;
 }

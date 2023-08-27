@@ -4,7 +4,7 @@ idf_component_register(SRCS "main.c"
                             "wifi.cpp"
                             "lcd_lib.cpp"
                             "sova.cpp"
-                            "telemetry_upload_main.cpp"
+                            "thingsboard.cpp"
                             "ntp.cpp"
                             "gpio.cpp"
                     INCLUDE_DIRS ".")
