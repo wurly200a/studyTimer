@@ -19,9 +19,11 @@ static const char* TAG = "ntp_client";
 
 static bool s_time_sync_completed = false;
 static unsigned int epochTime = 0;
+#define NTP_RETRY_COUNT 5000
 
 void time_sync_notification_cb(struct timeval *tv)
 {
+    s_time_sync_completed = true;
     ESP_LOGI(TAG, "Notification of a time synchronization event");
 }
 
@@ -33,7 +35,7 @@ void ntp_init(void) {
     time_t now = 0;
     struct tm timeinfo = { 0 };
     int retry = 0;
-    const int retry_count = 3000;
+    const int retry_count = NTP_RETRY_COUNT;
     while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < retry_count) {
         if( !(retry % 100) )
         {
@@ -41,10 +43,16 @@ void ntp_init(void) {
         }
         delay(10);
     }
-    time(&now);
-    localtime_r(&now, &timeinfo);
-    epochTime = now + 32400;
-    s_time_sync_completed = true;
+
+    if( retry < retry_count )
+    {
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        epochTime = now + 32400;
+    }
+    else
+    {
+    }
 }
 
 unsigned int getEpochTime(void) {
