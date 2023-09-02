@@ -70,7 +70,6 @@ extern void ntp_init(void);
 extern bool isNtpSyncCompleted(void);
 
 extern unsigned int getEpochTime();
-extern void tentativeTimeIncrement();
 
 extern void gpio_setup(void);
 extern bool gpio_port_read(int io_num);
@@ -169,7 +168,7 @@ void main_task(void *args)
             SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM3,szBuffer);
             counter++;
 #endif
-            tentativeTimeIncrement();
+//            tentativeTimeIncrement();
         }
         idle1secTimer++;
 
