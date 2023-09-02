@@ -168,7 +168,6 @@ void main_task(void *args)
             SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM3,szBuffer);
             counter++;
 #endif
-//            tentativeTimeIncrement();
         }
         idle1secTimer++;
 
