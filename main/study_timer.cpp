@@ -92,7 +92,7 @@ void modeChangeProc(void);
 string epochTimeToDateString(unsigned long epochTime);
 string getFormattedTime(unsigned long secs);
 void printMsg(string msg);
-void updateTimeProc(void);
+void updateTimeProc(bool forceOn);
 void displayInit(bool displayOn);
 void actionFuncInitial(unsigned int previousStatus);
 int stateFuncInitial(unsigned int eventTrigger);
@@ -139,7 +139,7 @@ static int idle1secTimer;
 static int idle100msecTimer;
 void main_task(void *args)
 {
-    int counter=0;
+//    int counter=0;
     static char szBuffer[BUFFER_SIZE];
 
     xTaskCreatePinnedToCore(sub_task, "subTask", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
@@ -163,7 +163,7 @@ void main_task(void *args)
         if( 1000/MAIN_TSK_TICK <= idle1secTimer ){
             eventTrigger |= TRIGGER_1SEC;
             idle1secTimer=0;
-#if 1
+#if 0
             sprintf(szBuffer,"currentSts:%01d",currentStatus);
             SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM3,szBuffer);
             counter++;
@@ -354,13 +354,13 @@ void printMsg(string msg) {
     outputString(msg);
 }
 
-void updateTimeProc(void) {
+void updateTimeProc(bool forceOn) {
     unsigned int nowTime = 0;
 
 //  timeClient.update();
     nowTime = getEpochTime();
 
-    if( currentTime != nowTime ) {
+    if( forceOn || currentTime != nowTime ) {
         outputTimeToDisplay(nowTime,LINE_NUM1);
         if( startTime ){
             outputTimeToDisplay(nowTime-startTime,LINE_NUM2);
@@ -371,6 +371,7 @@ void updateTimeProc(void) {
 
 void displayInit(bool displayOn){
     if( displayOn ){
+        updateTimeProc(true);
         outputTimeToDisplay(0,LINE_NUM2);
         outputTimeToDisplay(integrationTime,LINE_NUM3);
         printMsg("");
@@ -514,7 +515,7 @@ int stateFuncIdle(unsigned int eventTrigger){
     portCheck();
 
     if( eventTrigger & TRIGGER_100MSEC ){
-        updateTimeProc();
+        updateTimeProc(false);
         portOnTriggerProc();
         modeChangeProc();
     }
