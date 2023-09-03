@@ -71,8 +71,8 @@ static void initialize_sntp(void)
 
     ESP_LOGI(TAG, "Initializing SNTP");
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
-//    esp_sntp_setservername(0, "pool.ntp.org");
-    esp_sntp_setservername(0, "ntp.nict.jp");
+    esp_sntp_setservername(0, "pool.ntp.org");
+//    esp_sntp_setservername(0, "ntp.nict.jp");
     sntp_set_time_sync_notification_cb(time_sync_notification_cb);
 #ifdef CONFIG_SNTP_TIME_SYNC_METHOD_SMOOTH
     sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
