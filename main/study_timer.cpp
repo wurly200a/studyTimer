@@ -106,7 +106,9 @@ void loop();
 
 void sub_task(void *args)
 {
+    lcdCommonSetup();
     lcdSetup(LCD_DISPLAY_MODE1);
+    lcdSetup(LCD_DISPLAY_MODE2);
 
     for(;;) {
         lcdProc();
@@ -174,6 +176,11 @@ void main_task(void *args)
         if( 5000/MAIN_TSK_TICK <= idle5secTimer ){
             eventTrigger |= TRIGGER_5SEC;
             idle5secTimer=0;
+#if 0
+            sprintf(szBuffer,"counter:%d",counter);
+            PrintLCD(LCD_DISPLAY_MODE1,szBuffer);
+            counter++;
+#endif
         }
         idle5secTimer++;
 
@@ -216,7 +223,7 @@ void outputString(string str)
 
     if( displayMode == 0 ){
         int matchStringNum = matchStrings(lastString,str);
-        SetStringToLCD(LCD_DISPLAY_MODE2,LCD_SPRITE_NUM3,(char *)str.c_str());
+//        PrintLCD(LCD_DISPLAY_MODE1,(char *)str.c_str());
         lastString = str;
     } else {
         // do nothing
@@ -488,8 +495,6 @@ void actionFuncIdle(unsigned int previousStatus){
 //    timeClient.update();
     string lastDate = epochTimeToDateString(lastSentTimeStamp);
     string nowDate = epochTimeToDateString(getEpochTime());
-
-    lcdSetup(LCD_DISPLAY_MODE2);
 
     printMsg(lastDate);
     printMsg(nowDate);

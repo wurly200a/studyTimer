@@ -31,8 +31,11 @@ typedef struct tag_S_LCD_CTRL_DATA
     bool bufferExist;
     int fontHeight;
     int spriteNum;
+    int posYmin;
+    int posYmax;
 } S_LCD_CTRL_DATA;
 
+void lcdCommonSetup(void);
 void lcdSetup(LCD_DISPLAY_MODE mode);
 
 void lcdProc();
