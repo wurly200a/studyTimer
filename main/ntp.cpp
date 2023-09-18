@@ -64,6 +64,21 @@ unsigned int getEpochTime(void) {
     return (unsigned int)rtn;
 }
 
+char *epochTimeToDateString(unsigned long epochTime) {
+    time_t t = epochTime;
+    struct tm tm_info;
+    static char dateString[36];
+    static char dateStringDebug[36];
+
+    gmtime_r(&t, &tm_info);
+
+    strftime(dateString, sizeof(dateString), "%04Y-%02m-%02d", &tm_info);
+    strftime(dateStringDebug, sizeof(dateStringDebug), "%Y-%m-%d %H:%M:%S", &tm_info);
+    ESP_LOGI(TAG, "dateStringDebug: %s",dateStringDebug);
+
+    return dateString;
+}
+
 static void initialize_sntp(void)
 {
     setenv("TZ", "JST-9", 1);

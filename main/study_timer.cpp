@@ -70,6 +70,7 @@ extern void ntp_init(void);
 extern bool isNtpSyncCompleted(void);
 
 extern unsigned int getEpochTime();
+extern char *epochTimeToDateString(unsigned long epochTime);
 
 extern void gpio_setup(void);
 extern bool gpio_port_read(int io_num);
@@ -89,7 +90,6 @@ void outputTimeToDisplay(unsigned long time, int lineNum);
 void portCheck(void);
 void portOnTriggerProc(void);
 void modeChangeProc(void);
-string epochTimeToDateString(unsigned long epochTime);
 string getFormattedTime(unsigned long secs);
 void printMsg(string msg);
 void updateTimeProc(bool forceOn);
@@ -332,17 +332,6 @@ void modeChangeProc(void)
     }
 }
 
-string epochTimeToDateString(unsigned long epochTime) {
-    time_t t = epochTime;
-
-    struct tm *tm = localtime(&t);
-
-    char dateString[36];
-    sprintf(dateString, "%04d-%02d-%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
-
-    return string(dateString);
-}
-
 string getFormattedTime(unsigned long secs) {
     unsigned long rawTime = secs;
     unsigned long hours = (rawTime % 86400L) / 3600;
@@ -493,8 +482,8 @@ int stateFuncInitial(unsigned int eventTrigger){
 void actionFuncIdle(unsigned int previousStatus){
   if( previousStatus == STATE_INITIAL ) {
 //    timeClient.update();
-    string lastDate = epochTimeToDateString(lastSentTimeStamp);
-    string nowDate = epochTimeToDateString(getEpochTime());
+    string lastDate = string(epochTimeToDateString(lastSentTimeStamp));
+    string nowDate = string(epochTimeToDateString(getEpochTime()));
 
     printMsg(lastDate);
     printMsg(nowDate);
