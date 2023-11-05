@@ -44,4 +44,8 @@ bool PrintLCD(LCD_DISPLAY_MODE mode,char *msg);
 
 bool SetStringToLCD(LCD_DISPLAY_MODE mode,LCD_SPRITE_NUM num,char *msg);
 
+bool SetGraphicToLCD(bool turnOn);
+
+bool SetHeartToLCD(bool turnOn, int heartNum, bool blinkOn);
+
 void ClearLCD(void);

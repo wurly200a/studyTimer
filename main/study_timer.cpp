@@ -307,6 +307,8 @@ void portOnTriggerProc(void)
                 thingsBoardSendTelemetryInt(STUDY_TIME_KEY,integrationTime);
             }
             measureOn = false;
+            SetGraphicToLCD(false);
+            SetHeartToLCD(false,0,false);
         } else {
             // from OFF to ON
             startTime = currentTime;
@@ -314,6 +316,7 @@ void portOnTriggerProc(void)
                 thingsBoardSendTelemetryBool(STUDY_KEY,true);
             }
             measureOn = true;
+            SetGraphicToLCD(true);
         }
         switchTrigger[SWITCH_START_STOP]= false;
     } else {
@@ -362,6 +365,7 @@ void updateTimeProc(bool forceOn) {
             outputTimeToDisplay(nowTime-startTime,LINE_NUM2);
         }
         currentTime = nowTime;
+        SetHeartToLCD(true,((integrationTime + (startTime?currentTime-startTime:0))/(15*60)), (startTime?true:false) );
     }
 }
 
